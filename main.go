@@ -1,10 +1,14 @@
 package main
 
 import (
+	"database/sql"
+	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/GOLANGV1/BD"
 	"github.com/go-chi/chi"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type Persona struct {
@@ -15,16 +19,46 @@ type Persona struct {
 	PERSONA_EDAD    int    `JSON:"EDAD"`
 }
 
+var databaseConnection *sql.DB
+
 func main() {
-	// r := gin.Default()
-	// |r.GET("/ping", func(c *gin.Context) {
-	// 	c.JSON(http.StatusOK, gin.H{
-	// 		"message": "hola HOLA",
-	// 	})
-	// })
-	// r.Run(":8087")
-	connection := BD.InitBD()
-	defer connection.Close()
+	databaseConnection = BD.InitBD()
+	defer databaseConnection.Close()
+
 	r := chi.NewRouter()
+
+	r.Get("/personas", func(w http.ResponseWriter, r *http.Request) {
+		const sql = `SELECT * FROM PERSONA;`
+		result, err := databaseConnection.Query(sql)
+		catch(err)
+
+		var personas []*Persona
+		for result.Next() {
+			persona := &Persona{}
+			err = result.Scan(
+				&persona.PERSONA_ID,
+				&persona.PERSONA_NOMBRE,
+				&persona.PERSONA_APE_PAT,
+				&persona.PERSONA_APE_MAT,
+				&persona.PERSONA_EDAD)
+			catch(err)
+			personas = append(personas, persona)
+		}
+		respondwithJSON(w, http.StatusOK, personas)
+	})
+	http.ListenAndServe(":3000", r)
 	fmt.Println(r)
+}
+
+func respondwithJSON(w http.ResponseWriter, code int, playload interface{}) {
+	response, _ := json.Marshal(playload)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(response)
+}
+
+func catch(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
