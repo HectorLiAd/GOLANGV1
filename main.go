@@ -7,16 +7,15 @@ import (
 	"net/http"
 
 	"github.com/GOLANGV1/BD"
+	"github.com/GOLANGV1/permisos"
 	"github.com/go-chi/chi"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type Persona struct {
-	PERSONA_ID      int    `JSON:"ID_PERSONA"`
-	PERSONA_NOMBRE  string `JSON:"NOMBRE"`
-	PERSONA_APE_PAT string `JSON:"APELLIDO_PATERNO"`
-	PERSONA_APE_MAT string `JSON:"APELLIDO_MATERNO"`
-	PERSONA_EDAD    int    `JSON:"EDAD"`
+type Tarea struct {
+	Lt_id  int    `json:"id"`
+	Nombre string `json:"nombre"`
+	Estado int    `json:"estado"`
 }
 
 var databaseConnection *sql.DB
@@ -26,34 +25,67 @@ func main() {
 	defer databaseConnection.Close()
 
 	r := chi.NewRouter()
+	r.Use(permisos.GetCors().Handler)
+	r.Get("/tareas", ObtenerTareas)
+	r.Post("/", CrearTarea)
+	r.Put("/tareas/{id}", ActualizarTarea)
+	r.Delete("/tareas/{id}", EliminarTarea)
 
-	r.Get("/personas", func(w http.ResponseWriter, r *http.Request) {
-		const sql = `SELECT * FROM PERSONA;`
-		result, err := databaseConnection.Query(sql)
-		catch(err)
-
-		var personas []*Persona
-		for result.Next() {
-			persona := &Persona{}
-			err = result.Scan(
-				&persona.PERSONA_ID,
-				&persona.PERSONA_NOMBRE,
-				&persona.PERSONA_APE_PAT,
-				&persona.PERSONA_APE_MAT,
-				&persona.PERSONA_EDAD)
-			catch(err)
-			personas = append(personas, persona)
-		}
-		respondwithJSON(w, http.StatusOK, personas)
-	})
 	http.ListenAndServe(":3000", r)
-	fmt.Println(r)
 }
 
-func respondwithJSON(w http.ResponseWriter, code int, playload interface{}) {
+//Obteniendo todos el listado de tareas
+func ObtenerTareas(w http.ResponseWriter, r *http.Request) {
+	const query = `select * from listaTareas`
+	results, err := databaseConnection.Query(query)
+	catch(err)
+	var tareas []*Tarea
+	for results.Next() {
+		tarea := &Tarea{}
+		err := results.Scan(&tarea.Lt_id, &tarea.Nombre, &tarea.Estado)
+		catch(err)
+		tareas = append(tareas, tarea)
+	}
+	respondWithJSON(w, http.StatusOK, tareas)
+}
+
+//Creando un listado de tarea
+func CrearTarea(w http.ResponseWriter, r *http.Request) {
+	var tarea_ Tarea
+	json.NewDecoder(r.Body).Decode(&tarea_)
+	fmt.Println(tarea_.Estado)
+	fmt.Println(tarea_.Nombre)
+	const query = "insert into listaTareas(nombre, estado) values(?, ?)"
+	_, err := databaseConnection.Exec(query, tarea_.Nombre, tarea_.Estado)
+	catch(err)
+	respondWithJSON(w, http.StatusCreated, map[string]string{"mensaje": "tarea creada"})
+}
+
+//Actulizar tarea
+func ActualizarTarea(w http.ResponseWriter, r *http.Request) {
+	var tarea_ Tarea
+	id := chi.URLParam(r, "id")
+	json.NewDecoder(r.Body).Decode(&tarea_)
+	const query = "update listaTareas set estado = ? where lt_id = ?"
+	_, err := databaseConnection.Exec(query, tarea_.Estado, id)
+	catch(err)
+	respondWithJSON(w, http.StatusCreated, map[string]string{"mensaje": "tarea actulizada"})
+}
+
+//ELIMINAR TAREA
+func EliminarTarea(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	const query = "delete from listaTareas where lt_id = ?"
+	_, err := databaseConnection.Exec(query, id)
+	catch(err)
+	mensaje := "ID " + id + " eliminado correctamente"
+	respondWithJSON(w, http.StatusCreated, map[string]string{"mensaje": mensaje})
+}
+
+func respondWithJSON(w http.ResponseWriter, cod int, playload interface{}) {
 	response, _ := json.Marshal(playload)
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
+	w.WriteHeader(cod)
 	w.Write(response)
 }
 

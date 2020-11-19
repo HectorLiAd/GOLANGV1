@@ -10,19 +10,19 @@
   version = "v4.1.2"
 
 [[projects]]
-  digest = "1:a3af33fd30536d9c5a7b6ad542390919e57c1125097a194c7b3d9904109a0611"
-  name = "github.com/go-sql-driver/mysql"
+  digest = "1:45ccdb268237a61d4fb090732075fa135d359188b4ec0204d2c8749a7e8b411a"
+  name = "github.com/mattn/go-oci8"
   packages = ["."]
   pruneopts = "UT"
-  revision = "17ef3dd9d98b69acec3e85878995ada9533a9370"
-  version = "v1.5.0"
+  revision = "a0ec558daa1b8244dd2567d7e29d9497b745271d"
+  version = "v0.1.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/go-chi/chi",
-    "github.com/go-sql-driver/mysql",
+    "github.com/mattn/go-oci8",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
